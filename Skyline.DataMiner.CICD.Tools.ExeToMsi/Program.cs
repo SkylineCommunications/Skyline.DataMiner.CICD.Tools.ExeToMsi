@@ -47,6 +47,13 @@
 				IsRequired = true
 			};
 
+			var exeArguments = new Option<string>(
+				name: "--exe-arguments",
+				description: "Arguments to call during the exe run.")
+			{
+				IsRequired = false
+			};
+
 			var msiName = new Option<string>(
 			name: "--msi-name",
 			description: "Name of the msi file. Also the name of the installed app in windows.")
@@ -65,19 +72,21 @@
 			{
 				isDebug,
 				exeFilePath,
+				exeArguments,
 				msiName,
 				msiVersion,
 			};
 
-			rootCommand.SetHandler(Process, isDebug, exeFilePath, msiName, msiVersion);
+			rootCommand.SetHandler(Process, isDebug, exeFilePath, exeArguments, msiName, msiVersion);
 
 			return await rootCommand.InvokeAsync(args);
 		}
 
-		public static async Task<int> Process(bool isDebug, string exePath, string msiName, string msiVersion)
+		public static async Task<int> Process(bool isDebug, string exePath, string exeArguments, string msiName, string msiVersion)
 		{
 			try
 			{
+				exeArguments = exeArguments.Trim('\"');
 				var logConfig = new LoggerConfiguration().WriteTo.Console();
 				logConfig.MinimumLevel.Is(isDebug ? Serilog.Events.LogEventLevel.Debug : Serilog.Events.LogEventLevel.Information);
 				var seriLog = logConfig.CreateLogger();
@@ -126,7 +135,7 @@
 					string wxsTemplate = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
 <Wix xmlns=""http://schemas.microsoft.com/wix/2006/wi"">
   <Product Id=""*""
-           Name=""{msiName} ExeToMsiInstaller""
+           Name=""{msiName} ExeToMsi""
            Language=""1033""
            Version=""{msiVersion}""
            Manufacturer=""YourCompany""
@@ -140,24 +149,24 @@
 
     <Directory Id=""TARGETDIR"" Name=""SourceDir"">
       <Directory Id=""ProgramFilesFolder"">
-        <Directory Id=""INSTALLFOLDER"" Name=""{Path.GetFileNameWithoutExtension(exePath)}"" />
+        <Directory Id=""INSTALLFOLDER"" Name=""{msiName}"" />
       </Directory>
     </Directory>
 
     <Component Id=""MainExecutable"" Guid=""{Guid.NewGuid()}"" Directory=""INSTALLFOLDER"">
-      <File Id=""{exeName}"" Source=""{exePath}"" KeyPath=""yes"" />
+      <File Id=""{msiName}"" Source=""{exePath}"" KeyPath=""yes"" />
     </Component>
 
-    <Feature Id=""ProductFeature"" Title=""{exeName}"" Level=""1"">
+    <Feature Id=""ProductFeature"" Title=""{msiName}"" Level=""1"">
       <ComponentRef Id=""MainExecutable"" />
     </Feature>
 
     <!-- Deferred Custom Action: Associated with the Executable -->
     <CustomAction Id=""RunEXE""
                   Directory=""INSTALLFOLDER""
-                  ExeCommand=""&quot;[INSTALLFOLDER]{exeName}&quot;""
+                  ExeCommand=""&quot;[INSTALLFOLDER]{exeName}&quot; {exeArguments}""
                   Execute=""deferred""
-                  Return=""check""
+                  Return=""asyncNoWait""
                   Impersonate=""no"" />
 
     <!-- Schedule the Custom Action -->

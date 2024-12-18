@@ -6,8 +6,8 @@
 		[TestMethod(), Ignore]
 		public async Task ProcessTest()
 		{
-			var pathToExe = Path.GetFullPath("TestData\\WriteLogLine.exe");
-			await Program.Process(false, pathToExe, "ExeToMsiIntegrationTest", "1.0.0.3");
+			var pathToExe = Path.GetFullPath("TestData\\Write-LogLine.exe");
+			await Program.Process(false, pathToExe,"\"\\test \\more\"", "ExeToMsiIntegrationTest", "1.0.0.7");
 		}
 	}
 }
