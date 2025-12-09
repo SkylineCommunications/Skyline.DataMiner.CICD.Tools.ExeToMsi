@@ -3,7 +3,6 @@
 	using System;
 	using System.CommandLine;
 	using System.Diagnostics;
-	using System.IO;
 	using System.IO.Compression;
 	using System.Linq;
 	using System.Reflection;
@@ -14,6 +13,8 @@
 	using Microsoft.Extensions.Logging;
 
 	using Serilog;
+
+	using Skyline.DataMiner.CICD.FileSystem;
 
 	/// <summary>
 	/// Creates a .msi from a provided .exe installer..
@@ -108,9 +109,9 @@
 						msiName = msiName.Replace(".msi", "");
 					}
 
-					string installPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WiXToolset");
+					string installPath = FileSystem.Instance.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WiXToolset");
 
-					if (!Directory.Exists(installPath))
+					if (!FileSystem.Instance.Directory.Exists(installPath))
 					{
 						Console.WriteLine("Installing WiX Toolset...");
 						ExtractWixBuildTools(installPath);
@@ -121,10 +122,10 @@
 						Console.WriteLine("WiX Toolset already installed.");
 					}
 
-					string exeName = Path.GetFileName(exePath);
-					string workingDir = Path.GetDirectoryName(exePath);
-					string wxsFile = Path.Combine(workingDir, "setup.wxs");
-					string msiFile = Path.Combine(workingDir, $"{msiNameWithExtension}");
+					string exeName = FileSystem.Instance.Path.GetFileName(exePath);
+					string workingDir = FileSystem.Instance.Path.GetDirectoryName(exePath);
+					string wxsFile = FileSystem.Instance.Path.Combine(workingDir, "setup.wxs");
+					string msiFile = FileSystem.Instance.Path.Combine(workingDir, $"{msiNameWithExtension}");
 
 					string candlePath = $"{installPath}\\candle.exe";
 					string lightPath = $"{installPath}\\light.exe";
@@ -177,10 +178,10 @@
 </Wix>";
 
 					Console.WriteLine("Generating WXS file...");
-					File.WriteAllText(wxsFile, wxsTemplate);
+					FileSystem.Instance.File.WriteAllText(wxsFile, wxsTemplate);
 
 					// Step 2: Run Candle to compile WXS to WIXOBJ
-					string wixObjFile = Path.Combine(workingDir, "setup.wixobj");
+					string wixObjFile = FileSystem.Instance.Path.Combine(workingDir, "setup.wixobj");
 					RunProcess(candlePath, $"-out \"{wixObjFile}\" \"{wxsFile}\"", workingDir);
 
 					// Step 3: Run Light to link and produce MSI
